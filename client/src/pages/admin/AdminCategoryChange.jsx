@@ -1,0 +1,224 @@
+import {
+  Button,
+  Checkbox,
+  FormControlLabel,
+  TextField,
+  Typography,
+  Breadcrumbs,
+  List,
+  ListItem,
+  IconButton,
+  ListItemText,
+  Modal,
+  Backdrop,
+  Fade,
+  Box,
+} from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate, useParams } from "react-router-dom";
+import { changeCategory, getCategory } from "../../redux/api/products";
+import { Link } from "react-router-dom";
+import { setMessage } from "../../redux/reducers/products";
+function AdminCategoryChange() {
+  const params = useParams();
+  const dispatch = useDispatch();
+  const style = {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: 600,
+    bgcolor: "white",
+
+    p: 4,
+  };
+
+  useEffect(() => {
+    dispatch(getCategory(params.id));
+  }, [dispatch, params.id]);
+  const { currentCategory } = useSelector((state) => state.products);
+  const [form, setForm] = useState("");
+  const [check, setCheck] = useState(false);
+  const [chars, setChars] = useState([]);
+  const [charsInput, SetcharsInput] = useState("");
+
+  const [modal, setModal] = useState(false);
+  const [modalInput, setModalInput] = useState("");
+  const [selectedChar, setSelectedChar] = useState("");
+  useEffect(() => {
+    setForm(currentCategory.name);
+    setChars(currentCategory.chars);
+    setCheck(currentCategory.inMainPage);
+  }, [currentCategory]);
+
+  const submitHandler = (e) => {
+    e.preventDefault();
+    dispatch(changeCategory(params.id, form, chars, check));
+  };
+  const deleteChar = (name) => {
+    setChars(chars.filter((el) => el !== name));
+  };
+  const addToChars = (e) => {
+    e.preventDefault();
+    if (!chars.includes(charsInput)) {
+      setChars([...chars, { name: charsInput, variants: [] }]);
+      SetcharsInput("");
+    } else {
+      dispatch(
+        setMessage({ status: "error", msg: "Характеристика уже существует" })
+      );
+    }
+  };
+
+  return (
+    <div>
+      <Modal
+        aria-labelledby="transition-modal-title"
+        aria-describedby="transition-modal-description"
+        open={modal}
+        onClose={() => setModal(false)}
+        closeAfterTransition
+        BackdropComponent={Backdrop}
+        BackdropProps={{
+          timeout: 500,
+        }}
+      >
+        <Fade in={modal}>
+          <Box sx={style}>
+            <Typography id="transition-modal-title" variant="h6" component="h2">
+              {selectedChar}
+            </Typography>
+            <TextField
+              sx={{ p: 0, mt: 2 }}
+              label="Добавьте варианты"
+              fullWidth
+              value={modalInput}
+              onChange={(e) => setModalInput(e.target.value)}
+            />
+            <Button
+              onClick={() => {
+                setChars(
+                  chars.map((el) =>
+                    el.name === selectedChar
+                      ? { ...el, variants: [...el.variants, modalInput] }
+                      : el
+                  )
+                );
+              }}
+              sx={{ mt: 2 }}
+              variant="contained"
+              color="primary"
+            >
+              Добавить
+            </Button>
+            <List className="d-flex flex-wrap">
+              {chars &&
+                chars.find((el) => el.name === selectedChar) &&
+                chars
+                  .find((el) => el.name === selectedChar)
+                  .variants.map((v) => (
+                    <ListItem
+                      key={v}
+                      sx={{ width: "25ch" }}
+                      secondaryAction={
+                        <IconButton edge="end" aria-label="delete">
+                          <DeleteIcon />
+                        </IconButton>
+                      }
+                    >
+                      <ListItemText style={{ cursor: "pointer" }} primary={v} />
+                    </ListItem>
+                  ))}
+            </List>
+          </Box>
+        </Fade>
+      </Modal>
+      <div className="container-fluid mt-3">
+        <>
+          <Breadcrumbs aria-label="breadcrumb">
+            <Link to={"/"}>Домашняя</Link>
+            <Link to={"/admin"}>Админ панель</Link>
+            <Typography color="text.primary">Категории</Typography>
+          </Breadcrumbs>
+
+          <form action="" className="mt-5">
+            <TextField
+              fullWidth
+              label="Название"
+              onChange={(e) => setForm(e.target.value)}
+              value={form || ""}
+            />
+            <FormControlLabel
+              control={
+                <Checkbox checked={check} onChange={() => setCheck(!check)} />
+              }
+              label="Отображать на главной странице"
+            />
+            <div className="category-chars_input mt-4">
+              <h3>Список характеристик</h3>
+              <List className="mt-3 category-list">
+                {chars &&
+                  chars.map((el, index) => (
+                    <ListItem
+                      key={el.name}
+                      sx={{ width: "30ch" }}
+                      secondaryAction={
+                        <IconButton
+                          onClick={() => deleteChar(el.name)}
+                          edge="end"
+                          aria-label="delete"
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      }
+                    >
+                      <ListItemText
+                        style={{ cursor: "pointer" }}
+                        primary={el.name}
+                        onClick={() => {
+                          setModal(true);
+                          setSelectedChar(el.name);
+                        }}
+                      />
+                    </ListItem>
+                  ))}
+              </List>
+              <div className="d-flex align-items-center">
+                <TextField
+                  value={charsInput}
+                  onChange={(e) => SetcharsInput(e.target.value)}
+                  sx={{ width: "30ch" }}
+                  label="Название"
+                />
+                <Button
+                  onClick={(e) => addToChars(e)}
+                  sx={{ ml: "2ch", width: "5ch", height: "5ch" }}
+                  variant="contained"
+                  color="primary"
+                  type="submit"
+                >
+                  <AddIcon />
+                </Button>
+              </div>
+            </div>
+            <Button
+              onClick={(e) => submitHandler(e)}
+              sx={{ width: "20ch" }}
+              className="mt-3 d-block"
+              variant="contained"
+              color="primary"
+              type="submit"
+            >
+              Сохранить
+            </Button>
+          </form>
+        </>
+      </div>
+    </div>
+  );
+}
+
+export default AdminCategoryChange;
